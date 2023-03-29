@@ -1,11 +1,94 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from '@/styles/Home.module.css'
+import Head from 'next/head';
+import { useState } from 'react';
+import gojuon from '@/data/gojuon';
 
-const inter = Inter({ subsets: ['latin'] })
+export interface IQuestion {
+  title: string,
+  item: string,
+  options: Record<'A' | 'B' | 'C' | 'D', string>,
+  answer: 'A' | 'B' | 'C' | 'D',
+  userAnswer: '' | 'A' | 'B' | 'C' | 'D',
+}
 
-export default function Home() {
+/**
+ * @description 随机获取一个问题
+ *  1. 根据罗马音选择平假名
+ *  2. 根据罗马音选择片假名
+ *  3. 根据罗马音选择正确的读音
+ *  4. 根据平假名选择罗马音
+ *  5. 根据平假名选择片假名
+ *  6. 根据平假名选择正确的读音
+ *  7. 根据片假名选择罗马音
+ *  8. 根据片假名选择平假名
+ *  9. 根据片假名选择正确的读音
+ *  10. 根据正确的读音选择罗马音
+ *  11. 根据正确的读音选择平假名
+ *  12. 根据正确的读音选择片假名
+ */
+const questionEnum = [
+  { key: 'roomaji', name: '罗马音' },
+  { key: 'hiragana', name: '平假名' },
+  { key: 'katakana', name: '片假名' },
+  { key: 'sound', name: '读音' },
+] as const;
+
+const all = [...gojuon.youonn, ...gojuon.dakuonn, ...gojuon.seionn].filter(i => i);
+const getQuestion = (): IQuestion => {
+
+  const question: IQuestion = {
+    title: '',
+    item: '',
+    options: {
+      A: '',
+      B: '',
+      C: '',
+      D: '',
+    },
+    answer: 'A',
+    userAnswer: '',
+  };
+
+  /** 随机从罗马音/平假名/片假名/读音中选择一个作为题目类型 */
+  const questionType = Math.floor(Math.random() * 4) as 0 | 1 | 2 | 3;
+  /** 过滤掉上述类型以后随机从罗马音/平假名/片假名/读音中选择一个作为答案类型 */
+  const answerType = new Array(4).fill(0).map((_, index) => index).filter(i => i !== questionType)[Math.floor(Math.random() * 3)] as 0 | 1 | 2 | 3;
+
+  /** 随机选择四组用于答案和题目的五十音图元素 */
+  const options: (typeof all[0])[] = [];
+  while (options.length < 4) {
+    const option = all[Math.floor(Math.random() * all.length)] as Required<typeof all[0]>;
+    if (!options.includes(option) && option[questionEnum[questionType].key] && option[questionEnum[answerType].key]) {
+      options.push(option);
+      question.options['ABCD'[options.length - 1] as 'A' | 'B' | 'C' | 'D'] = option[questionEnum[answerType].key];
+    }
+  }
+
+  /** 随机选择一个作为题目 */
+  const correctIndex = Math.floor(Math.random() * 4);
+  const answerItem = options[correctIndex] as Required<typeof options[0]>;
+
+  question.item = answerItem[questionEnum[questionType].key];
+  question.title = `根据${questionEnum[questionType].name}选择对应的${questionEnum[answerType].name}`;
+  question.answer = ['A', 'B', 'C', 'D'][correctIndex] as 'A' | 'B' | 'C' | 'D';
+
+  return question;
+}
+
+export function getServerSideProps() {
+
+  const question = getQuestion();
+
+  return {
+    props: {
+      question,
+    }
+  }
+}
+
+export default function Home({ question }: { question: IQuestion }) {
+
+  const [selected, setSelected] = useState<'' | 'A' | 'B' | 'C' | 'D'>('');
+
   return (
     <>
       <Head>
@@ -14,101 +97,35 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={styles.main}>
-        <div className={styles.description}>
-          <p>
-            Get started by editing&nbsp;
-            <code className={styles.code}>src/pages/index.tsx</code>
-          </p>
-          <div>
-            <a
-              href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
+      <main className='flex p-10 flex-col justify-center items-center h-screen'>
+
+        <p className='text-xl mt-10 font-medium text-gray-600'>{question.title}</p>
+        <div className='text-sky-900'>
+          {question.item.includes('mp3') ? (
+            <audio controls src={question.item} />
+          ) : (
+            <div className='text-3xl my-8'>{question.item}</div>
+          )}
+        </div>
+
+        <ul className='w-full'>
+          {Object.keys(question.options).map(key => (
+            <li
+              key={key}
+              onClick={() => setSelected(key as 'A' | 'B' | 'C' | 'D')}
+              className={`py-2 bg-gray-100 text-gray-700 font-light rounded-full w-full mx-auto mb-4 flex items-center justify-center text-2xl ${selected === key && 'bg-pink-200 text-pink-500'}`}
             >
-              By{' '}
-              <Image
-                src="/vercel.svg"
-                alt="Vercel Logo"
-                className={styles.vercelLogo}
-                width={100}
-                height={24}
-                priority
-              />
-            </a>
-          </div>
-        </div>
+              {question.options[key as 'A' | 'B' | 'C' | 'D'].includes('mp3') ? (
+                <audio controls src={question.options[key as 'A' | 'B' | 'C' | 'D']} />
+              ) : (
+                question.options[key as 'A' | 'B' | 'C' | 'D']
+              )}
+            </li>
+          ))}
+        </ul>
 
-        <div className={styles.center}>
-          <div className={styles.thirteen}>
-            <Image
-              src="/thirteen.svg"
-              alt="13"
-              width={40}
-              height={31}
-              priority
-            />
-          </div>
-        </div>
+        <button className='bg-pink-700 rounded-full p-3 text-white w-full mt-auto'>提交</button>
 
-        <div className={styles.grid}>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Docs <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Find in-depth information about Next.js features and&nbsp;API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Learn <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Learn about Next.js in an interactive course with&nbsp;quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Templates <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Discover and deploy boilerplate example Next.js&nbsp;projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Deploy <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Instantly deploy your Next.js site to a shareable URL
-              with&nbsp;Vercel.
-            </p>
-          </a>
-        </div>
       </main>
     </>
   )
