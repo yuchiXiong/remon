@@ -113,14 +113,12 @@ export default function HomePage({ question: initQuestion }: { question: IQuesti
               {question.options[key as IQuestionOptions].includes('mp3') ? (
                 playing && selected === key ? (
                   <PauseOne
-                    onClick={() => handlePlay(question.options[key as IQuestionOptions], key as IQuestionOptions)}
                     theme="filled"
                     size="32"
                     fill="#333"
                   />
                 ) : (
                   <Play
-                    onClick={() => handlePlay(question.options[key as IQuestionOptions], key as IQuestionOptions)}
                     theme="filled"
                     size="32"
                     fill="#333"
