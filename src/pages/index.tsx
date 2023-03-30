@@ -139,10 +139,10 @@ export default function HomePage({ question: initQuestion }: { question: IQuesti
           ))}
         </ul>
 
-        <button
+        <div
           onClick={handleSubmit}
-          className='w-full p-3 mt-auto text-white bg-pink-700 rounded-full'
-        >{currentStatus === 'WAIT_NEXT' ? '下一题' : '提交'}</button>
+          className='w-full p-3 mt-auto text-center text-white bg-pink-700 rounded-full'
+        >{currentStatus === 'WAIT_NEXT' ? '下一题' : '提交'}</div>
 
       </main>
     </>
