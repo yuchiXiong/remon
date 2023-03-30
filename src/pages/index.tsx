@@ -14,6 +14,8 @@ export function getServerSideProps() {
   }
 }
 
+const audioMap: Record<string, HTMLAudioElement> = {};
+
 /** 
  * @description: 首页 - 答题
  */
@@ -30,10 +32,16 @@ export default function HomePage({ question: initQuestion }: { question: IQuesti
 
   /** 播放音频 */
   const handlePlay = (url: string, key: 'Q' | IQuestionOptions) => {
-    const audio = new Audio(url);
-    setPlaying('Q');
-    audio.play();
-    audio.onpause = () => setPlaying('');
+    Object.values(audioMap).forEach(audio => {
+      audio.currentTime = 0;
+      audio.pause();
+    });
+    if (!audioMap[url]) {
+      audioMap[url] = new Audio(url);
+    }
+    setTimeout(() => setPlaying(key), 0);
+    audioMap[url]!.play();
+    audioMap[url]!.onpause = () => setPlaying('');
   };
 
   /** 提交 */
@@ -113,14 +121,12 @@ export default function HomePage({ question: initQuestion }: { question: IQuesti
               {question.options[key as IQuestionOptions].includes('mp3') ? (
                 playing && selected === key ? (
                   <PauseOne
-                    onClick={() => handlePlay(question.options[key as IQuestionOptions], key as IQuestionOptions)}
                     theme="filled"
                     size="32"
                     fill="#333"
                   />
                 ) : (
                   <Play
-                    onClick={() => handlePlay(question.options[key as IQuestionOptions], key as IQuestionOptions)}
                     theme="filled"
                     size="32"
                     fill="#333"
